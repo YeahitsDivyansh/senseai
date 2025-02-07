@@ -1,12 +1,13 @@
 "use server"; // Ensures this module runs on the server
 
+import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server"; // Import authentication service from Clerk
 
-/**
- * Updates user profile and ensures industry insights exist.
- * @param {Object} data - User profile update data
- * @returns {Object} Updated user details
- */
+// /**
+//  * Updates user profile and ensures industry insights exist.
+//  * @param {Object} data - User profile update data
+//  * @returns {Object} Updated user details
+//  */
 export async function updateUser(data) {
   // Authenticate user
   const { userId } = await auth();
@@ -80,10 +81,10 @@ export async function updateUser(data) {
   }
 }
 
-/**
- * Retrieves the user's onboarding status.
- * @returns {Object} User's onboarding status
- */
+// /**
+//  * Retrieves the user's onboarding status.
+//  * @returns {Object} User's onboarding status
+//  */
 export async function getUserOnboardingStatus() {
   // Authenticate user
   const { userId } = await auth();
