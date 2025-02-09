@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server"; // Import authentication service from Clerk
+import { generateAIInsights } from "./dashboard";
 
 // /**
 //  * Updates user profile and ensures industry insights exist.
@@ -39,17 +40,13 @@ export async function updateUser(data) {
 
         // If industry insight doesn't exist, create a new entry with default values
         if (!industryInsight) {
-          industryInsight = await tx.industryInsight.create({
+          const insights = await generateAIInsights(data.industry);
+
+          industryInsight = await db.industryInsight.create({
             data: {
               industry: data.industry,
-              salaryRanges: [], // Placeholder for salary information
-              growthRate: [], // Placeholder for industry growth rate
-              demandLevel: "Medium", // Default industry demand level
-              topSkills: [], // Placeholder for top industry skills
-              marketOutlook: "Neutral", // Default market outlook
-              keyTrends: [], // Placeholder for industry trends
-              recomendedSkills: [], // Placeholder for recommended skills
-              nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Schedule next update in a week
+              ...insights,
+              nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
             },
           });
         }
@@ -74,10 +71,10 @@ export async function updateUser(data) {
       }
     );
 
-    return result.updatedUser; // Return the updated user profile
+    return { success: true, ...result }; // Return the updated user profile
   } catch (error) {
     console.error("Error updating user and industry:", error.message);
-    throw new Error("Failed to update profile"); // Handle transaction failure
+    throw new Error("Failed to update profile " + error.message); // Handle transaction failure
   }
 }
 
