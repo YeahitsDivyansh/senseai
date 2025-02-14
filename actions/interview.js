@@ -152,3 +152,40 @@ export async function saveQuizResult(questions, answers, score) {
     throw new Error("Failed to save quiz result"); // Throw an error if quiz saving fails.
   }
 }
+
+export async function getAssessments() {
+  // Authenticate the user and retrieve their userId
+  const { userId } = await auth();
+
+  // If no userId is found, throw an unauthorized error
+  if (!userId) throw new Error("Unauthorized");
+
+  // Find the user in the database using the Clerk user ID
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+  });
+
+  // If the user does not exist, throw an error
+  if (!user) throw new Error("User not found");
+
+  try {
+    // Fetch all assessments associated with the user, ordered by creation date (ascending)
+    const assessments = await db.assessment.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    // Return the retrieved assessments
+    return assessments;
+  } catch (error) {
+    // Log the error for debugging purposes
+    console.error("Error fetching assessments:", error);
+
+    // Throw a generic error message to the caller
+    throw new Error("Failed to fetch assessments");
+  }
+}
