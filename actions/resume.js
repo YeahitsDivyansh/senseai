@@ -145,7 +145,7 @@ export async function improveWithAI({ current, type }) {
   `;
 
   try {
-    const result = await model.generate(prompt);
+    const result = await model.generateContent(prompt);
     // Sends the prompt to the AI model and generates an improved version
 
     const response = result.response;
