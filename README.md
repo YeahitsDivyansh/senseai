@@ -46,3 +46,4 @@ git clone https://github.com/your-repo/sensai.git
 cd sensai
 npm install
 
+![Alt text](https://github.com/YeahitsDivyansh/senseai/blob/e9cd93196e2be06e3818ab0ab24fd2a9348655f6/Screenshot%202025-02-17%20232741.png)
