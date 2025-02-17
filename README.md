@@ -1,6 +1,6 @@
 # SENSAI
 
-SENSAI is a full-stack AI-powered career coach designed to provide industry insights, mock interviews, resume creation, and cover letter generation. It leverages cutting-edge technologies to help professionals assess their skills, understand market demand, and improve their job readiness.
+SENSAI is a full-stack AI-powered career coach designed to provide industry insights, mock interviews, resume creation, and cover letter generation. It leverages cutting-edge technologies to help professionals assess their skills, understand market demand, and improve their job readiness. (Screenshots are under the public folder as img1,img2,...till img11.png)
 
 ## 🚀 Tech Stack
 
