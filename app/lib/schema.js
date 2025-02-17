@@ -107,3 +107,15 @@ export const resumeSchema = z.object({
   // Project entries (array of entrySchema objects)
   projects: z.array(entrySchema),
 });
+
+// Defining the schema for cover letter generation
+export const coverLetterSchema = z.object({
+  // Validates that companyName is a non-empty string
+  companyName: z.string().min(1, "Company name is required"),
+
+  // Validates that jobTitle is a non-empty string
+  jobTitle: z.string().min(1, "Job title is required"),
+
+  // Validates that jobDescription is a non-empty string
+  jobDescription: z.string().min(1, "Job description is required"),
+});

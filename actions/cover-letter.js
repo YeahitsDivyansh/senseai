@@ -1,30 +1,22 @@
 "use server";
 
-import { db } from "@/lib/prisma"; // Importing Prisma client for database operations
-import { auth } from "@clerk/nextjs/server"; // Importing authentication module from Clerk
-import { GoogleGenerativeAI } from "@google/generative-ai"; // Importing Google Generative AI library
+import { db } from "@/lib/prisma";
+import { auth } from "@clerk/nextjs/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initializing Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-/**
- * Function to generate a cover letter using AI
- * @param {Object} data - Contains job details (jobTitle, companyName, jobDescription)
- * @returns {Object} - The generated cover letter stored in the database
- */
 export async function generateCoverLetter(data) {
-  // Authenticate user
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Fetch user details from the database
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
+
   if (!user) throw new Error("User not found");
 
-  // Constructing the AI prompt
   const prompt = `
     Write a professional cover letter for a ${data.jobTitle} position at ${
     data.companyName
@@ -52,11 +44,9 @@ export async function generateCoverLetter(data) {
   `;
 
   try {
-    // Generating cover letter using AI model
     const result = await model.generateContent(prompt);
-    const content = result.response().text().trim();
+    const content = result.response.text().trim();
 
-    // Storing the generated cover letter in the database
     const coverLetter = await db.coverLetter.create({
       data: {
         content,
@@ -75,45 +65,36 @@ export async function generateCoverLetter(data) {
   }
 }
 
-/**
- * Function to retrieve all cover letters of the authenticated user
- * @returns {Array} - List of cover letters
- */
 export async function getCoverLetters() {
-  // Authenticate user
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Fetch user details
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
+
   if (!user) throw new Error("User not found");
 
-  // Retrieve cover letters associated with the user
   return await db.coverLetter.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" }, // Sorting by most recent first
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
   });
 }
 
-/**
- * Function to fetch a specific cover letter by ID
- * @param {String} id - Cover letter ID
- * @returns {Object} - The requested cover letter
- */
 export async function getCoverLetter(id) {
-  // Authenticate user
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Fetch user details
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
+
   if (!user) throw new Error("User not found");
 
-  // Retrieve the specific cover letter if it belongs to the user
   return await db.coverLetter.findUnique({
     where: {
       id,
@@ -122,23 +103,16 @@ export async function getCoverLetter(id) {
   });
 }
 
-/**
- * Function to delete a cover letter
- * @param {String} id - Cover letter ID
- * @returns {Object} - The deleted cover letter
- */
 export async function deleteCoverLetter(id) {
-  // Authenticate user
   const { userId } = await auth();
   if (!userId) throw new Error("Unauthorized");
 
-  // Fetch user details
   const user = await db.user.findUnique({
     where: { clerkUserId: userId },
   });
+
   if (!user) throw new Error("User not found");
 
-  // Delete the cover letter if it belongs to the user
   return await db.coverLetter.delete({
     where: {
       id,

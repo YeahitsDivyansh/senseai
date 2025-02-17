@@ -17,7 +17,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  Line,
 } from "recharts"; // Recharts library for rendering the performance chart
 
 // Component to display a performance trend chart based on quiz assessments
