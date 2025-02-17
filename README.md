@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# SENSAI
 
-## Getting Started
+SENSAI is a full-stack AI-powered career coach designed to provide industry insights, mock interviews, resume creation, and cover letter generation. It leverages cutting-edge technologies to help professionals assess their skills, understand market demand, and improve their job readiness.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Frontend:** Next.js, Tailwind CSS, ShadCN UI  
+- **Backend & Database:** Neon DB, Prisma  
+- **Authentication & Authorization:** Clerk  
+- **State Management & Background Tasks:** Inngest  
+- **Data Visualization:** Recharts  
+- **AI & ML:** Google Gemini  
+- **Schema Validation:** Zod  
+- **PDF Generation:** html2pdf, react-md-editor  
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🌟 Features  
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🔍 AI-Powered Career Insights  
+- Analyzes your **skills, experience, and employment status**  
+- Provides **demand level of skills**, **current salary trends**, and **required skills**  
+- Displays statistical data using **Recharts**  
 
-## Learn More
+### 🎯 Mock Interview Test  
+- Generates **10 industry-specific questions** using **Google Gemini**  
+- Scores responses with **detailed explanations and improvement tips**  
 
-To learn more about Next.js, take a look at the following resources:
+### 📄 Resume & Cover Letter Builder  
+- **Create a professional resume** and download it as a **PDF**  
+- **Generate a personalized cover letter**  
+- Uses **html2pdf and react-md-editor** for PDF export  
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔐 Secure Authentication  
+- User authentication and authorization handled by **Clerk**  
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 📊 Data-Driven Decision Making  
+- Real-time insights powered by **Neon DB, Prisma, and Inngest**  
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📦 Installation  
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sh
+git clone https://github.com/your-repo/sensai.git
+cd sensai
+npm install
