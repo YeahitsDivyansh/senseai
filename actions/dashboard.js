@@ -6,7 +6,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"; // Import Google's G
 
 // Initialize Google Generative AI with API Key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 /**
  * Function to generate AI-powered industry insights

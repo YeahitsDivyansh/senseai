@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 
 // Initialize Google Generative AI instance with the API key from environment variables
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 // Selects the "gemini-1.5-flash" AI model for text generation
 
 /**

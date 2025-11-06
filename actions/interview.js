@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"; // Import Google Gen
 
 // Initialize the Google Generative AI model
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY); // Create an instance of the Google Generative AI using the API key.
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Select the "gemini-1.5-flash" model for generating responses.
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Select the "gemini-1.5-flash" model for generating responses.
 
 /**
  * Function to generate a quiz based on the user's industry and skills.
