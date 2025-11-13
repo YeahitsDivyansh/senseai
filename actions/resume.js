@@ -14,9 +14,23 @@ import { revalidatePath } from "next/cache";
 // Used to refresh cached pages in Next.js after database updates
 
 // Initialize Google Generative AI instance with the API key from environment variables
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-// Selects the "gemini-1.5-flash" AI model for text generation
+// Note: genAI and model are initialized lazily in improveWithAI to handle missing env vars gracefully
+let genAI = null;
+let model = null;
+
+function getModel() {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("GEMINI_API_KEY environment variable is not set");
+  }
+
+  if (!genAI) {
+    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  }
+
+  return model;
+}
+// Selects the "gemini-2.5-flash" AI model for text generation
 
 /**
  * Saves or updates a resume in the database for the authenticated user.
@@ -110,26 +124,36 @@ export async function getResume() {
  * @throws {Error} If the user is not authenticated or the AI request fails.
  */
 export async function improveWithAI({ current, type }) {
-  const { userId } = await auth();
-  // Authenticate the user and get their Clerk user ID
+  try {
+    const { userId } = await auth();
+    // Authenticate the user and get their Clerk user ID
 
-  if (!userId) throw new Error("Unauthorized");
-  // Throw an error if the user is not logged in
+    if (!userId) throw new Error("Unauthorized");
+    // Throw an error if the user is not logged in
 
-  const user = await db.user.findUnique({
-    where: { clerkUserId: userId },
-    include: {
-      industryInsight: true,
-      // Fetch additional industry insights associated with the user
-    },
-  });
+    if (!current || !type) {
+      throw new Error("Current content and type are required");
+    }
 
-  if (!user) throw new Error("User not found");
-  // Throw an error if the user does not exist
+    const user = await db.user.findUnique({
+      where: { clerkUserId: userId },
+      include: {
+        industryInsight: true,
+        // Fetch additional industry insights associated with the user
+      },
+    });
 
-  // Construct a detailed prompt for the AI model to improve the resume content
-  const prompt = `
-    As an expert resume writer, improve the following ${type} description for a ${user.industry} professional.
+    if (!user) throw new Error("User not found");
+    // Throw an error if the user does not exist
+
+    // Handle case where industry might be null/undefined
+    const industryContext = user.industry
+      ? `${user.industry} professional`
+      : "professional";
+
+    // Construct a detailed prompt for the AI model to improve the resume content
+    const prompt = `
+    As an expert resume writer, improve the following ${type} description for a ${industryContext}.
     Make it more impactful, quantifiable, and aligned with industry standards.
     Current content: "${current}"
 
@@ -144,8 +168,8 @@ export async function improveWithAI({ current, type }) {
     Format the response as a single paragraph without any additional text or explanations.
   `;
 
-  try {
-    const result = await model.generateContent(prompt);
+    const aiModel = getModel();
+    const result = await aiModel.generateContent(prompt);
     // Sends the prompt to the AI model and generates an improved version
 
     const response = result.response;
@@ -158,7 +182,21 @@ export async function improveWithAI({ current, type }) {
     console.error("Error improving content:", error);
     // Logs the error if AI processing fails
 
-    throw new Error("Failed to improve content");
+    // Provide more detailed error messages
+    if (
+      error.message === "Unauthorized" ||
+      error.message === "User not found"
+    ) {
+      throw error;
+    }
+
+    if (error.message?.includes("API key")) {
+      throw new Error(
+        "AI service configuration error. Please contact support."
+      );
+    }
+
+    throw new Error(error.message || "Failed to improve content");
     // Throws a user-friendly error message
   }
 }
