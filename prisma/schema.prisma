@@ -33,6 +33,7 @@ model User{
   assessments   Assessment[]
   resume        Resume?
   coverLetter   CoverLetter[]
+  quizGenerations QuizGeneration[]
 }
 
 model Assessment {
@@ -111,5 +112,28 @@ enum DemandLevel {
 enum MarketOutlook {
   POSITIVE 
   NEUTRAL 
-  NEGATIVE 
+  NEGATIVE
+}
+
+// Quiz Generation Status Tracking
+model QuizGeneration {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  status        QuizStatus @default(PENDING) // PENDING, PROCESSING, COMPLETED, FAILED
+  questions     Json?      // Generated quiz questions (stored when completed)
+  error         String?    // Error message if generation failed
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  completedAt   DateTime?  // When quiz generation completed
+
+  @@index([userId, status])
+  @@index([status])
+}
+
+enum QuizStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
 }

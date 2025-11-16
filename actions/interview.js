@@ -14,11 +14,19 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); // Select
  * It fetches user details from the database, constructs a prompt, and uses Gemini AI to generate quiz questions.
  */
 export async function generateQuiz() {
+  const startTime = Date.now();
+  console.log("[generateQuiz] 🚀 Starting quiz generation...");
+
   // Authenticate the user
+  const authStart = Date.now();
   const { userId } = await auth(); // Get the authenticated user's ID from Clerk.
+  const authTime = Date.now() - authStart;
+  console.log(`[generateQuiz] ⏱️  Auth completed in ${authTime}ms`);
+
   if (!userId) throw new Error("Unauthorized"); // Throw an error if the user is not authenticated.
 
   // Fetch the user's industry and skills from the database
+  const dbStart = Date.now();
   const user = await db.user.findUnique({
     where: { clerkUserId: userId }, // Find the user in the database using Clerk's user ID.
     select: {
@@ -26,11 +34,14 @@ export async function generateQuiz() {
       skills: true, // Retrieve the user's skills.
     },
   });
+  const dbTime = Date.now() - dbStart;
+  console.log(`[generateQuiz] ⏱️  Database query completed in ${dbTime}ms`);
 
   if (!user) throw new Error("User not found"); // Throw an error if the user is not found in the database.
 
   try {
     // Construct the AI prompt for quiz generation
+    const promptStart = Date.now();
     const prompt = `
       Generate 10 technical interview questions for a ${
         user.industry
@@ -52,21 +63,54 @@ export async function generateQuiz() {
         ]
       }
     `;
+    const promptTime = Date.now() - promptStart;
+    console.log(
+      `[generateQuiz] ⏱️  Prompt construction completed in ${promptTime}ms`
+    );
 
     // Request the AI model to generate quiz content based on the prompt
+    const aiStart = Date.now();
+    console.log("[generateQuiz] 🤖 Calling Gemini API...");
     const result = await model.generateContent(prompt);
+    const aiTime = Date.now() - aiStart;
+    console.log(
+      `[generateQuiz] ⏱️  Gemini API call completed in ${aiTime}ms (${(
+        aiTime / 1000
+      ).toFixed(2)}s)`
+    );
+
     const response = result.response; // Extract response from the AI model.
+    const textStart = Date.now();
     const text = response.text(); // Get the response as plain text.
+    const textTime = Date.now() - textStart;
+    console.log(
+      `[generateQuiz] ⏱️  Response text extraction completed in ${textTime}ms`
+    );
 
     // Clean the response to remove unwanted characters like ```json
+    const parseStart = Date.now();
     const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
 
     // Parse the JSON response to extract quiz questions
     const quiz = JSON.parse(cleanedText);
+    const parseTime = Date.now() - parseStart;
+    console.log(`[generateQuiz] ⏱️  JSON parsing completed in ${parseTime}ms`);
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[generateQuiz] ✅ Quiz generation completed successfully!`);
+    console.log(
+      `[generateQuiz] 📊 Total execution time: ${totalTime}ms (${(
+        totalTime / 1000
+      ).toFixed(2)}s)`
+    );
+    console.log(
+      `[generateQuiz] 📈 Time breakdown: Auth(${authTime}ms) + DB(${dbTime}ms) + Prompt(${promptTime}ms) + AI(${aiTime}ms) + Text(${textTime}ms) + Parse(${parseTime}ms)`
+    );
 
     return quiz.questions; // Return the list of generated quiz questions.
   } catch (error) {
-    console.error("Error generating quiz:", error); // Log any errors.
+    const totalTime = Date.now() - startTime;
+    console.error(`[generateQuiz] ❌ Error after ${totalTime}ms:`, error); // Log any errors.
     throw new Error("Failed to generate quiz questions"); // Throw an error if quiz generation fails.
   }
 }

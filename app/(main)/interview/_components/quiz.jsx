@@ -1,7 +1,7 @@
 "use client"; // Indicates this component is a Client Component in Next.js
 
 // Import necessary dependencies
-import { generateQuiz, saveQuizResult } from "@/actions/interview"; // Import functions for generating and saving quiz results
+import { saveQuizResult } from "@/actions/interview"; // Import function for saving quiz results
 import { Button } from "@/components/ui/button"; // Import a button component
 import {
   Card,
@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label"; // Import label component
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"; // Import radio group components for answer selection
 import useFetch from "@/hooks/use-fetch"; // Custom hook for handling async API calls
 import { Loader2 } from "lucide-react"; // Icon for loading state
-import React, { useEffect, useState } from "react"; // Import React hooks
+import React, { useEffect, useState, useRef } from "react"; // Import React hooks
 import { BarLoader } from "react-spinners"; // Import loading indicator
 import { toast } from "sonner"; // Import toast notifications
 import QuizResult from "./quiz-result"; // Import QuizResult component to display results
@@ -29,12 +29,11 @@ const Quiz = () => {
   // State to control explanation visibility
   const [showExplanation, setShowExplanation] = useState(false);
 
-  // Fetch quiz data using the custom useFetch hook
-  const {
-    loading: generatingQuiz, // Loading state while generating quiz
-    fn: generateQuizFn, // Function to trigger quiz generation
-    data: quizData, // Store fetched quiz data
-  } = useFetch(generateQuiz);
+  // State for quiz generation
+  const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [quizData, setQuizData] = useState(null);
+  const [generationStatus, setGenerationStatus] = useState(null); // PENDING, PROCESSING, COMPLETED, FAILED
+  const pollingIntervalRef = useRef(null);
 
   // Fetch function for saving quiz results
   const {
@@ -90,6 +89,147 @@ const Quiz = () => {
     }
   };
 
+  // Function to trigger quiz generation via background job
+  const generateQuizFn = async () => {
+    const startTime = Date.now();
+    console.log("[Quiz Component] 🚀 Starting quiz generation request...");
+    
+    setGeneratingQuiz(true);
+    setGenerationStatus("PENDING");
+    setQuizData(null);
+
+    try {
+      // Step 1: Trigger the background job
+      const fetchStart = Date.now();
+      console.log("[Quiz Component] 📤 Calling /api/quiz/generate...");
+      
+      const response = await fetch("/api/quiz/generate", {
+        method: "POST",
+      });
+
+      const fetchTime = Date.now() - fetchStart;
+      console.log(`[Quiz Component] ⏱️  API call completed in ${fetchTime}ms, status: ${response.status}`);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to start quiz generation");
+      }
+
+      const { quizGenerationId } = await response.json();
+      const totalTime = Date.now() - startTime;
+      console.log(`[Quiz Component] ✅ Quiz generation started in ${totalTime}ms, ID: ${quizGenerationId}`);
+
+      // Step 2: Start polling for status
+      startPolling(quizGenerationId);
+    } catch (error) {
+      const totalTime = Date.now() - startTime;
+      console.error(`[Quiz Component] ❌ Error after ${totalTime}ms:`, error);
+      console.error("[Quiz Component] ❌ Error details:", {
+        message: error.message,
+        stack: error.stack,
+      });
+      toast.error(error.message || "Failed to start quiz generation");
+      setGeneratingQuiz(false);
+      setGenerationStatus(null);
+    }
+  };
+
+  // Function to poll quiz generation status
+  const startPolling = (quizGenerationId) => {
+    console.log(`[Quiz Component] 🔄 Starting polling for quiz ${quizGenerationId}...`);
+    const pollingStartTime = Date.now();
+    let pollCount = 0;
+    const maxPolls = 60; // Maximum 60 polls (2 minutes at 2s intervals)
+
+    // Clear any existing polling interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Poll immediately first time
+    checkQuizStatus(quizGenerationId, pollCount, pollingStartTime);
+    pollCount++;
+
+    // Then poll every 2 seconds
+    pollingIntervalRef.current = setInterval(() => {
+      if (pollCount >= maxPolls) {
+        console.error(`[Quiz Component] ❌ Polling timeout after ${maxPolls} attempts (${(Date.now() - pollingStartTime) / 1000}s)`);
+        clearInterval(pollingIntervalRef.current);
+        setGeneratingQuiz(false);
+        toast.error("Quiz generation is taking too long. Please try again.");
+        return;
+      }
+      checkQuizStatus(quizGenerationId, pollCount, pollingStartTime);
+      pollCount++;
+    }, 2000);
+  };
+
+  // Function to check quiz generation status
+  const checkQuizStatus = async (quizGenerationId, pollNumber, pollingStartTime) => {
+    const checkStartTime = Date.now();
+    console.log(`[Quiz Component] 🔍 Poll #${pollNumber + 1}: Checking status for quiz ${quizGenerationId}...`);
+
+    try {
+      const fetchStart = Date.now();
+      const response = await fetch(
+        `/api/quiz/status?quizGenerationId=${quizGenerationId}`
+      );
+      const fetchTime = Date.now() - fetchStart;
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[Quiz Component] ❌ Status check failed (${response.status}):`, errorText);
+        throw new Error(`Failed to check quiz status: ${response.status}`);
+      }
+
+      const { quizGeneration } = await response.json();
+      const checkTime = Date.now() - checkStartTime;
+      const elapsedTime = Date.now() - pollingStartTime;
+      
+      console.log(`[Quiz Component] ⏱️  Status check #${pollNumber + 1} completed in ${checkTime}ms (fetch: ${fetchTime}ms)`);
+      console.log(`[Quiz Component] 📊 Current status: ${quizGeneration.status}, Elapsed: ${(elapsedTime / 1000).toFixed(1)}s`);
+      
+      setGenerationStatus(quizGeneration.status);
+
+      if (quizGeneration.status === "COMPLETED") {
+        // Quiz is ready!
+        const totalTime = Date.now() - pollingStartTime;
+        console.log(`[Quiz Component] ✅ Quiz generation completed after ${(totalTime / 1000).toFixed(2)}s (${pollNumber + 1} polls)`);
+        clearInterval(pollingIntervalRef.current);
+        setGeneratingQuiz(false);
+        setQuizData(quizGeneration.questions);
+        toast.success("Quiz generated successfully!");
+      } else if (quizGeneration.status === "FAILED") {
+        // Quiz generation failed
+        const totalTime = Date.now() - pollingStartTime;
+        console.error(`[Quiz Component] ❌ Quiz generation failed after ${(totalTime / 1000).toFixed(2)}s:`, quizGeneration.error);
+        clearInterval(pollingIntervalRef.current);
+        setGeneratingQuiz(false);
+        toast.error(quizGeneration.error || "Failed to generate quiz");
+      } else {
+        // If PENDING or PROCESSING, continue polling
+        console.log(`[Quiz Component] ⏳ Status is ${quizGeneration.status}, continuing to poll...`);
+      }
+    } catch (error) {
+      const checkTime = Date.now() - checkStartTime;
+      console.error(`[Quiz Component] ❌ Error checking status after ${checkTime}ms:`, error);
+      console.error("[Quiz Component] ❌ Error details:", {
+        message: error.message,
+        pollNumber: pollNumber + 1,
+      });
+      // Don't stop polling on network errors, they might be temporary
+    }
+  };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
   // Start a new quiz
   const startNewQuiz = () => {
     setCurrentQuestion(0); // Reset question index
@@ -101,7 +241,21 @@ const Quiz = () => {
 
   // Display loading indicator while quiz is being generated
   if (generatingQuiz) {
-    return <BarLoader className="mt-4" width={"100%"} color="gray" />;
+    return (
+      <Card className="mx-2">
+        <CardHeader>
+          <CardTitle>Generating Your Quiz</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <BarLoader className="mt-4" width={"100%"} color="gray" />
+          <p className="text-center text-muted-foreground">
+            {generationStatus === "PENDING" && "Preparing your personalized quiz..."}
+            {generationStatus === "PROCESSING" && "Generating questions with AI... This may take 15-20 seconds."}
+            {!generationStatus && "Starting quiz generation..."}
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Display quiz result if available
