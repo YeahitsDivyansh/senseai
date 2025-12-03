@@ -32,11 +32,7 @@ export default function RootLayout({ children }) {
             <main className="min-h-screen">{children}</main>
             <Toaster richColors />
             {/* footer */}
-            <footer className="bg-muted/50 py-12">
-              <div className="container mx-auto px-4 text-center text-gray-200">
-                <p>Made By Divyansh🙌</p>
-              </div>
-            </footer>
+            <footer className="bg-muted/50 py-12"></footer>
           </ThemeProvider>
         </body>
       </html>
